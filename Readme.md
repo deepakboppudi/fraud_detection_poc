@@ -1,7 +1,7 @@
 # Multi-Agent Financial Fraud Detective
 ### GCP Architect POC — Option 1
 
-A multi-agent AI pipeline that detects financial fraud in banking transactions using **Google BigQuery**, **Google ADK**, and **Gemini** — built as a proof of concept for a GCP Architect interview.
+A multi-agent AI pipeline that detects financial fraud in banking transactions using **Google BigQuery**, **Google ADK**, and **Gemini** — built as a proof of concept
 
 ---
 
