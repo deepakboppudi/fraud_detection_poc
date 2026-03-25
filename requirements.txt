@@ -1,0 +1,14 @@
+# requirements.txt
+# Install: pip install -r requirements.txt
+
+# Google BigQuery
+google-cloud-bigquery==3.25.0
+
+# Google ADK — upgraded from 0.1.0 to fix telemetry bytes serialization bug
+google-adk==0.2.0
+
+# Missing transitive dependency of google-adk
+deprecated==1.2.14
+
+# Load .env file for local dev
+python-dotenv==1.0.1
