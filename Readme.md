@@ -252,6 +252,3 @@ This POC makes exactly **2 Gemini API calls** per run:
 
 ---
 
-## License
-
-MIT
