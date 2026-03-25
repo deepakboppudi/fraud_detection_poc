@@ -70,9 +70,9 @@ fraud_detection_poc/
 ├── main.py               # Full pipeline — Bot A + Bot B
 ├── setup_bigquery.py     # One-time BigQuery table creation + data seed
 ├── config.py             # All settings, reads from .env
-├── check_models.py       # Lists Gemini models available for your API key
+├── models.py             # Lists Gemini models available for your API key
 ├── requirements.txt      # Python dependencies
-├── env_example.txt       # Rename to .env and fill in your values
+├── env.sample            # Rename to .env and fill in your values
 └── reports/              # SAR reports saved here (auto-created on run)
 ```
 
