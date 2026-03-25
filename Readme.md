@@ -1,31 +1,45 @@
 # Multi-Agent Financial Fraud Detective
-### GCP Architect POC — Option 1
+### GCP Architect POC — Built with BigQuery + ADK + Gemini 2.5 Pro
 
-A multi-agent AI pipeline that detects financial fraud in banking transactions using **Google BigQuery**, **Google ADK**, and **Gemini** — built as a proof of concept
+A multi-agent AI pipeline that automatically detects financial fraud patterns
+in banking transactions and generates a formal compliance report — built using
+real Google Cloud services.
 
 ---
 
 ## Architecture
 
 ```
-On-Prem Database (SQLite seed)
+On-Prem Database (SQLite simulation)
         │
-        │  setup_bigquery.py (one-time ETL load)
+        │  setup_bigquery.py  ← one-time ETL load
         ▼
-BigQuery — fraud_detection.transactions
-        │
-        │  Single UNION ALL query
-        ▼
-Bot A — ADK LlmAgent (Investigator)
-   └── Tool: detect_fraud()
-        │
-        │  Findings JSON
-        ▼
-Bot B — ADK LlmAgent (Compliance Reporter)
-   └── Gemini generates formal SAR report
-        │
-        ▼
-reports/SAR_<timestamp>.txt
+┌─────────────────────────────────────┐
+│  BigQuery                           │
+│  Dataset : fraud_detection          │
+│  Table   : transactions             │
+│  231 rows, partitioned by day       │
+└─────────────────┬───────────────────┘
+                  │  UNION ALL SQL query
+                  ▼
+┌─────────────────────────────────────┐
+│  Bot A — ADK LlmAgent               │
+│  Role   : Financial Investigator    │
+│  Tool   : detect_fraud()            │
+│  Brain  : Gemini 2.5 Pro            │
+└─────────────────┬───────────────────┘
+                  │  Findings JSON
+                  ▼
+┌─────────────────────────────────────┐
+│  Bot B — ADK LlmAgent               │
+│  Role   : Compliance Reporter       │
+│  Tool   : None (pure LLM writing)   │
+│  Brain  : Gemini 2.5 Pro            │
+└─────────────────┬───────────────────┘
+                  │
+                  ▼
+        reports/SAR_<timestamp>.txt
+        (Suspicious Activity Report)
 ```
 
 ---
@@ -34,18 +48,18 @@ reports/SAR_<timestamp>.txt
 
 | Service | Purpose |
 |---|---|
-| **BigQuery** | Data warehouse — stores and queries transactions |
-| **Gemini** (`gemini-2.0-flash`) | Powers both ADK agents |
-| **ADK** (Agent Development Kit) | Orchestrates Bot A and Bot B |
+| **BigQuery** | Cloud data warehouse — stores and queries transactions |
+| **Gemini 2.5 Pro** | Powers both ADK agents (Bot A and Bot B) |
+| **Google ADK 0.2.0** | Agent orchestration framework |
 
 ---
 
 ## Fraud Patterns Detected
 
-| Pattern | Detection Logic | Law |
+| Pattern | What It Means | Law |
 |---|---|---|
-| **Smurfing** | Transactions between $9,000–$9,999 (just below BSA $10K CTR threshold) | 31 U.S.C. § 5324 |
-| **Geo Risk** | Wire transfers to FATF high-risk jurisdictions (PA, KY, BZ, NG, RU) | FATF Recommendation 10 |
+| **Smurfing** | Multiple transactions between $9,000–$9,999 — just below the $10,000 BSA mandatory reporting threshold | 31 U.S.C. § 5324 — Structuring |
+| **Geo Risk** | Wire transfers to FATF high-risk jurisdictions — Panama, Cayman Islands, Belize, Nigeria, Russia | FATF Recommendation 10 — Enhanced Due Diligence |
 
 ---
 
@@ -53,86 +67,119 @@ reports/SAR_<timestamp>.txt
 
 ```
 fraud_detection_poc/
-├── main.py               # Pipeline — Bot A + Bot B
-├── setup_bigquery.py     # One-time BQ table creation + data seed
-├── config.py             # All settings (reads from .env)
+├── main.py               # Full pipeline — Bot A + Bot B
+├── setup_bigquery.py     # One-time BigQuery table creation + data seed
+├── config.py             # All settings, reads from .env
 ├── check_models.py       # Lists Gemini models available for your API key
 ├── requirements.txt      # Python dependencies
-├── .env.example          # Environment variable template
-└── reports/              # Generated SAR reports (auto-created)
+├── env_example.txt       # Rename to .env and fill in your values
+└── reports/              # SAR reports saved here (auto-created on run)
 ```
+
+---
+
+## Prerequisites
+
+- Python 3.11 or higher
+- GCP account (free tier works)
+- Gemini 2.5 Pro API key from [aistudio.google.com](https://aistudio.google.com)
+- Google Cloud SDK (`gcloud`) installed
 
 ---
 
 ## Setup & Run
 
-### Prerequisites
-- Python 3.11+
-- GCP account (free tier works)
-- Gemini API key from [aistudio.google.com](https://aistudio.google.com)
-
-### 1. Clone and install
+### Step 1 — Clone the repository
 ```bash
 git clone https://github.com/your-username/fraud-detection-poc.git
 cd fraud-detection-poc
+```
+
+### Step 2 — Create and activate virtual environment
+```bash
 python -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # Mac/Linux
+
+# Windows
+.venv\Scripts\activate
+
+# Mac / Linux
+source .venv/bin/activate
+```
+
+### Step 3 — Install dependencies
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Authenticate with GCP
+### Step 4 — Configure environment
 ```bash
-gcloud auth application-default login
+# Windows
+copy env_example.txt .env
+
+# Mac / Linux
+cp env_example.txt .env
 ```
 
-### 3. Configure environment
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and fill in:
+Edit `.env` and fill in your values:
 ```env
 GCP_PROJECT=your-gcp-project-id
 GEMINI_API_KEY=AIzaSy...
-GEMINI_MODEL=gemini-2.0-flash
+GEMINI_MODEL=gemini-2.5-pro
+REPORT_OUTPUT_DIR=reports
 ```
 
-> **Find your project ID:**
+> To find your GCP project ID:
 > ```bash
 > gcloud config get-value project
 > ```
 
-> **Find valid model names for your key:**
+> To verify which models your API key supports:
 > ```bash
 > python check_models.py
 > ```
 
-### 4. Create BigQuery table and seed data (run once)
+### Step 5 — Authenticate with GCP
+```bash
+gcloud auth application-default login
+```
+A browser window will open — sign in with the Google account that has access to your GCP project.
+
+### Step 6 — Create BigQuery table and seed data
+> Run this **once only** before the first demo run.
+
 ```bash
 python setup_bigquery.py
 ```
 
 Expected output:
 ```
+[SETUP] Creating BigQuery dataset and table...
 [BQ] Dataset ready: your-project.fraud_detection
 [BQ] Table ready: your-project.fraud_detection.transactions
-[BQ] Loaded 231 rows into your-project.fraud_detection.transactions
+
+[SETUP] Seeding transaction data (simulates on-prem DB sync)...
+[BQ] Loaded 231 rows via load job (free tier compatible)
+[BQ] Successfully loaded 231 rows
+
+[SETUP] Done. Now run: python main.py
 ```
 
-### 5. Run the pipeline
+### Step 7 — Run the pipeline
 ```bash
 python main.py
 ```
 
 Expected output:
 ```
-FRAUD DETECTIVE POC
+ FRAUD DETECTIVE POC
  Project : your-project
  Table   : your-project.fraud_detection.transactions
- Model   : gemini-2.0-flash
+ Model   : gemini-2.5-pro
+ Total Gemini calls: 2
 
+==================================================
 BOT A - Investigator Agent
+==================================================
 [Bot A] Querying your-project.fraud_detection.transactions...
 [Tool] Running BigQuery fraud detection query...
 [Tool] Found 4 suspicious patterns in BigQuery.
@@ -140,48 +187,71 @@ BOT A - Investigator Agent
   [HIGH] SMURFING - ACC-001: 10 txns, $93,754.00
   [HIGH] GEO_RISK - ACC-002: 6 txns, $79,753.00
 
+==================================================
 BOT B - Compliance Reporter Agent
-[Bot B] Generating SAR with gemini-2.0-flash...
+==================================================
+[Bot B] Generating SAR with gemini-2.5-pro...
 
+==================================================
 GENERATED SAR REPORT
-================================================
-...SAR report printed here...
+==================================================
+
+SUSPICIOUS ACTIVITY REPORT
+...Gemini 2.5 Pro generated formal SAR here...
 
 [Main] Saved -> reports/SAR_20260323_120000.txt
 ```
 
 ---
 
-## API Quota Notes
+## API Quota
 
-This POC makes **exactly 2 Gemini API calls** per run to stay within free tier limits:
+This POC makes exactly **2 Gemini API calls** per run:
 
 1. **Bot A** — one call to reason over BigQuery tool results
 2. **Bot B** — one call to generate the SAR report
 
-### Free Tier Limits
+### Gemini 2.5 Pro Free Tier Limits
 
-| Model | Requests/day | Requests/min |
-|---|---|---|
-| gemini-2.0-flash | 200 | 15 |
-| gemini-1.5-flash | 1,500 | 15 |
-
-If you hit a `429 RESOURCE_EXHAUSTED` error:
-- Wait 24 hours for daily quota to reset, **or**
-- Add billing to your GCP project (uses free $300 credits, not charged), **or**
-- Create a new GCP project with a fresh API key
-
----
-
-## Known Issues & Fixes
-
-| Error | Fix |
+| Limit | Value |
 |---|---|
-| `403 Streaming insert is not allowed` | Fixed — uses `load_table_from_json()` instead of `insert_rows_json()` |
-| `ModuleNotFoundError: deprecated` | Run `pip install deprecated==1.2.14` |
-| `TypeError: bytes is not JSON serializable` | Fixed — upgrade to `google-adk==0.2.0` |
-| `AttributeError: 'coroutine' object has no attribute 'id'` | Fixed — `create_session` is async in ADK 0.2.0, uses `await` |
-| `429 RESOURCE_EXHAUSTED` | Free tier quota hit — wait 24h or add billing |
-| `404 Model not found` | Run `python check_models.py` to find valid model names for your key |
+| Requests per minute | 5 |
+| Requests per day | 25 |
+| Input tokens per minute | 250,000 |
+
+> If you hit `429 RESOURCE_EXHAUSTED`, wait a few minutes and retry.
+> For higher limits, add billing to your GCP project
+> (uses free $300 credits — you will not be charged).
 
 ---
+
+## Troubleshooting
+
+| Error | Cause | Fix |
+|---|---|---|
+| `403 Streaming insert not allowed` | Free tier blocks streaming inserts | Fixed — uses `load_table_from_json()` |
+| `ModuleNotFoundError: deprecated` | Missing ADK dependency | `pip install deprecated==1.2.14` |
+| `TypeError: bytes not JSON serializable` | Bug in ADK 0.1.0 telemetry | Fixed — upgraded to `google-adk==0.2.0` |
+| `'coroutine' has no attribute 'id'` | `create_session` is async in ADK 0.2.0 | Fixed — added `await` |
+| `429 RESOURCE_EXHAUSTED` | Gemini free tier quota exhausted | Wait 24h or use new API key |
+| `404 Model not found` | Wrong model name format | Run `python check_models.py` |
+| `gcloud not authenticated` | GCP auth expired | Run `gcloud auth application-default login` |
+| `BQ table not found` | Setup not run yet | Run `python setup_bigquery.py` |
+
+---
+
+## Tech Stack
+
+| Layer | Local Simulation | Real GCP Service |
+|---|---|---|
+| On-prem database | SQLite seed script | Cloud SQL (PostgreSQL) |
+| Data warehouse | BigQuery | BigQuery |
+| Agent framework | Google ADK 0.2.0 | Google ADK 0.2.0 |
+| LLM | Gemini 2.5 Pro | Gemini 2.5 Pro (Enterprise) |
+| Report storage | Local `reports/` folder | Cloud Storage bucket |
+
+---
+
+## License
+
+MIT
