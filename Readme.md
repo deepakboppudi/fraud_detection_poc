@@ -135,7 +135,7 @@ REPORT_OUTPUT_DIR=reports
 
 > To verify which models your API key supports:
 > ```bash
-> python check_models.py
+> python models.py
 > ```
 
 ### Step 5 — Authenticate with GCP
@@ -234,7 +234,7 @@ This POC makes exactly **2 Gemini API calls** per run:
 | `TypeError: bytes not JSON serializable` | Bug in ADK 0.1.0 telemetry | Fixed — upgraded to `google-adk==0.2.0` |
 | `'coroutine' has no attribute 'id'` | `create_session` is async in ADK 0.2.0 | Fixed — added `await` |
 | `429 RESOURCE_EXHAUSTED` | Gemini free tier quota exhausted | Wait 24h or use new API key |
-| `404 Model not found` | Wrong model name format | Run `python check_models.py` |
+| `404 Model not found` | Wrong model name format | Run `python models.py` |
 | `gcloud not authenticated` | GCP auth expired | Run `gcloud auth application-default login` |
 | `BQ table not found` | Setup not run yet | Run `python setup_bigquery.py` |
 
