@@ -67,7 +67,20 @@ def detect_fraud() -> str:
         WHERE country IN ('PA', 'KY', 'BZ', 'NG', 'RU')
         GROUP BY account
         HAVING txn_count >= 1
-
+        
+        UNION ALL
+        
+        SELECT
+            'HIGH_VELOCITY'       AS pattern,
+            account,
+            COUNT(*)         AS txn_count,
+            ROUND(SUM(amount), 2) AS total_amount,
+            'HIGH'           AS risk,
+            'Account Takeover / Automated Fraud Indicator' AS law
+        FROM `{config.BQ_TABLE_REF}`
+        GROUP BY account, TIMESTAMP_TRUNC(timestamp, HOUR)
+        HAVING COUNT(*) > {config.VELOCITY_THRESHOLD}
+        
         ORDER BY total_amount DESC
     """
 
